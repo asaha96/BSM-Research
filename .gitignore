@@ -1,0 +1,26 @@
+.DS_Store
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtualenvs
+.venv/
+venv/
+
+# Streamlit
+.streamlit/
+
+# Data / outputs (keep repo lightweight)
+data/
+*.parquet
+*.arrow
+*.feather
+*.sqlite
+*.db
+
+# OS / editor
+.idea/
+.vscode/
+
