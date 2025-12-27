@@ -89,5 +89,5 @@ python plot_verification_maps.py
 
 ## License
 
-Internal / research use unless you add a license file.
+Internal
 
