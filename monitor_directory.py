@@ -5,7 +5,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler, FileCreatedEvent, FileModifiedEvent
 
 # === CONFIGURATION ===
-BASE_DIR = os.environ.get("BSM_OUTPUT_DIR", os.path.join(os.getcwd(), "data", "analysis"))
+BASE_DIR = os.environ.get("BSM_WORKING_DIR", os.path.join(os.getcwd(), "data", "working"))
 OUTPUT_BASE = r"C:\Users\asaha96\Desktop\AritraDirectory\OUTPUT_BASE"
 PARALLEL_SCRIPT = r"C:\Users\asaha96\Desktop\AritraDirectory\GOPI_SCRIPTS\parallel_core_pcap_to_csv_gopi.py"
 PYTHON_EXEC = r"C:\Program Files\Python38\python.exe"

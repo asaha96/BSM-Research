@@ -4,7 +4,7 @@ from glob import glob
 import pyarrow.parquet as pq
 
 # --- CONFIG ---
-DATA_DIR = os.environ.get("BSM_OUTPUT_DIR", os.path.join(os.getcwd(), "data", "analysis"))
+DATA_DIR = os.environ.get("BSM_DATA_DIR", os.path.join(os.getcwd(), "data", "csv"))
 OUTPUT_DIR = os.environ.get("BSM_OUTPUT_DIR", os.path.join(os.getcwd(), "data", "analysis"))
 CHUNK_SIZE = 1000 
 
