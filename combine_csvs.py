@@ -4,7 +4,7 @@ import os
 # --- CONFIG ---
 
 # This is the parent directory where the CSVs are located
-BASE_DIR = r"\\ad.gatech.edu\gtfs\COE\CEE\Transpo\TrafficData\ATCMTD\CV_Analysis"
+BASE_DIR = os.environ.get("BSM_OUTPUT_DIR", os.path.join(os.getcwd(), "data", "analysis"))
 
 # 1. List the exact filenames you want to combine
 files_to_combine = [

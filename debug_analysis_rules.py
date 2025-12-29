@@ -5,7 +5,7 @@ import numpy as np
 from datetime import datetime, timezone
 
 # --- CONFIG (Ensure these match your analyzer script) ---
-OUTPUT_DIR = r"\\ad.gatech.edu\gtfs\COE\CEE\Transpo\TrafficData\ATCMTD\CV_Analysis"
+OUTPUT_DIR = os.environ.get("BSM_OUTPUT_DIR", os.path.join(os.getcwd(), "data", "analysis"))
 STAGING_FILE = os.path.join(OUTPUT_DIR, "all_vehicle_data_2024_09.parquet")
 NUM_WORKERS = 8 # Use a safe number of workers
 

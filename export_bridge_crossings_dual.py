@@ -10,7 +10,7 @@ import math # Added import
 # -----------------------
 # CONFIG
 # -----------------------
-OUTPUT_DIR = r"\\ad.gatech.edu\gtfs\COE\CEE\Transpo\TrafficData\ATCMTD\CV_Analysis"
+OUTPUT_DIR = os.environ.get("BSM_OUTPUT_DIR", os.path.join(os.getcwd(), "data", "analysis"))
 # No longer needs a single STAGING_FILE path here
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 

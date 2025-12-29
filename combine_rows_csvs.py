@@ -4,7 +4,7 @@ import glob
 
 # --- CONFIG ---
 # This is the parent directory where all the CSVs are located
-BASE_DIR = r"\\ad.gatech.edu\gtfs\COE\CEE\Transpo\TrafficData\ATCMTD\CV_Analysis"
+BASE_DIR = os.environ.get("BSM_OUTPUT_DIR", os.path.join(os.getcwd(), "data", "analysis"))
 
 # 1. Define the new, combined output file name
 output_filename = os.path.join(BASE_DIR, "north_ave_bridge_crossing_rows_ALL_MONTHS.csv")

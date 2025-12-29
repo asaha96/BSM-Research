@@ -5,7 +5,7 @@ import numpy as np
 from glob import glob
 
 # --- CONFIG ---
-OUTPUT_DIR = r"\\ad.gatech.edu\gtfs\COE\CEE\Transpo\TrafficData\ATCMTD\CV_Analysis"
+OUTPUT_DIR = os.environ.get("BSM_OUTPUT_DIR", os.path.join(os.getcwd(), "data", "analysis"))
 PLOT_OUTPUT_DIR = os.path.join(OUTPUT_DIR, "Analysis_Long_Crossings_Final_3")
 os.makedirs(PLOT_OUTPUT_DIR, exist_ok=True)
 

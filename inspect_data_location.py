@@ -3,7 +3,7 @@ import pandas as pd
 import os
 
 # --- CONFIG ---
-OUTPUT_DIR = r"\\ad.gatech.edu\gtfs\COE\CEE\Transpo\TrafficData\ATCMTD\CV_Analysis"
+OUTPUT_DIR = os.environ.get("BSM_OUTPUT_DIR", os.path.join(os.getcwd(), "data", "analysis"))
 STAGING_FILE = os.path.join(OUTPUT_DIR, "all_vehicle_data_SEPT_2025_TEST.parquet")
 
 # --- SCRIPT ---
