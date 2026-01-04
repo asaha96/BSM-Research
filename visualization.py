@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import pydeck as pdk
-import os, math, datetime
+import os, datetime
 import altair as alt
 from glob import glob
 import numpy as np
@@ -46,15 +46,6 @@ st.markdown("""
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         background: var(--bg-base);
         color: var(--text-primary);
-    }
-    
-    /* Glass Panel Mixin Style */
-    .glass-panel {
-        background: var(--glass-tint);
-        backdrop-filter: blur(40px) saturate(150%);
-        -webkit-backdrop-filter: blur(40px) saturate(150%);
-        border: 1px solid var(--glass-border);
-        border-radius: 16px;
     }
     
     /* Header */
@@ -217,11 +208,6 @@ st.markdown("""
         transform: translateY(0px);
     }
 
-    /* Make small button rows tighter */
-    .control-button-row {
-        margin: 0.25rem 0 0.75rem 0;
-    }
-    
     /* Status Badge */
     .status-badge {
         background: var(--success-dim);
@@ -400,13 +386,12 @@ STOP_BAR_LAT, STOP_BAR_LON = 33.771431, -84.390662
 
 # Degree to meter conversions
 METERS_PER_DEG_LAT = 111320
-METERS_PER_DEG_LON = 111320 * math.cos(math.radians(STOP_BAR_LAT))
+METERS_PER_DEG_LON = 111320 * np.cos(np.radians(STOP_BAR_LAT))
 
 # Trip segmentation and NA segment thresholds
 GAP_S = 10.0
 MIN_TRIP_POINTS = 5
 MIN_NA_POINTS = 10
-MIN_NA_DURATION_S = 10.0
 
 # Crossing detection rules (matching export_bridge_crossings_dual.py)
 NA_SLICES = 3
@@ -414,22 +399,6 @@ MIN_SLICES_TOUCHED = 3
 WE_MIN_DEG, WE_MAX_DEG = 45.0, 135.0
 MIN_WE_FRACTION = 0.60
 MIN_POINTS_IN_BOX = 10
-
-# Bearing based W to E check (for visualization)
-WE_MIN_BEARING, WE_MAX_BEARING = 45.0, 135.0
-WE_MIN_PCT = 0.30
-
-# Smoothing short flips inside NA
-RUN_MIN_POINTS = 5
-RUN_MIN_SECONDS = 8.0
-
-# --- [SCATTER CONFIG] tweak these values for dot appearance ---
-DOT_RADIUS_M = 0.2          # meter radius used by deck.gl before pixel clamps
-DOT_RADIUS_MIN_PX = 0.1       # smallest on-screen size
-DOT_RADIUS_MAX_PX = 0.5       # largest on-screen size
-DOT_OPACITY = 0.1           # 0..1
-DOT_STROKE_PX = 0.3         # outline width in pixels
-# --------------------------------------------------------------
 
 # =============================
 # PAGE HEADER
@@ -737,86 +706,6 @@ def load_consolidated_filtered(
     df.sort_values(["VehicleID", "DateTime_UTC"], inplace=True)
     return df
 
-def segment_trips(df_vehicle, gap_s=GAP_S):
-    dt = df_vehicle["DateTime_UTC"].astype("int64") // 10**9
-    prev = dt.shift(1)
-    gap = (dt - prev)
-    new_trip = (gap.isna()) | (gap > gap_s)
-    tripnum = new_trip.cumsum()
-    return tripnum
-
-def compute_elev_threshold(na_df):
-    vals = na_df["Elevation_m"].dropna()
-    if len(vals) < 100:
-        return None
-    q25 = np.nanpercentile(vals, 25)
-    q75 = np.nanpercentile(vals, 75)
-    if (q75 - q25) < 2.0:
-        return None
-    low_med  = np.nanmedian(vals[vals <= q25])
-    high_med = np.nanmedian(vals[vals >= q75])
-    thr = (low_med + high_med) / 2.0
-    return thr
-
-def split_runs_by_level(na_trip_df, elev_thr):
-    if na_trip_df.empty:
-        return []
-    if elev_thr is not None and na_trip_df["Elevation_m"].notna().sum() >= MIN_NA_POINTS:
-        na_trip_df = na_trip_df.copy()
-        na_trip_df["LevelCand"] = np.where(na_trip_df["Elevation_m"] >= elev_thr, "Bridge", "Underpass")
-    else:
-        na_trip_df = na_trip_df.copy()
-        na_trip_df["LevelCand"] = None
-
-    ts = na_trip_df["DateTime_UTC"].astype("int64") // 10**9
-    gap = ts.diff().fillna(0)
-    new_block = (gap > GAP_S)
-    block_id = new_block.cumsum()
-    na_trip_df["BlockID"] = block_id
-
-    runs = []
-    for _, block in na_trip_df.groupby("BlockID"):
-        if len(block) < RUN_MIN_POINTS:
-            continue
-        dur = (block["DateTime_UTC"].iloc[-1] - block["DateTime_UTC"].iloc[0]).total_seconds()
-        if dur < RUN_MIN_SECONDS:
-            continue
-
-        if block["LevelCand"].notna().any():
-            maj = block["LevelCand"].mode()
-            level = maj.iloc[0] if not maj.empty else None
-        else:
-            level = None
-
-        if level is None:
-            br = calc_bearing(
-                block["Latitude"].to_numpy(),
-                block["Longitude"].to_numpy(),
-                block["Latitude"].shift(-1).to_numpy(),
-                block["Longitude"].shift(-1).to_numpy()
-            )
-            valid = pd.Series(br).dropna()
-            we_pct = np.mean((valid >= WE_MIN_BEARING) & (valid <= WE_MAX_BEARING)) if len(valid) else 0.0
-            level = "Bridge" if we_pct >= WE_MIN_PCT else "Underpass"
-
-        runs.append((block, level))
-
-    # merge very short middle runs between two same level runs
-    merged = []
-    i = 0
-    while i < len(runs):
-        block, lvl = runs[i]
-        if i > 0 and i < len(runs) - 1:
-            prev_block, prev_lvl = merged[-1]
-            next_block, next_lvl = runs[i + 1]
-            dur_mid = (block["DateTime_UTC"].iloc[-1] - block["DateTime_UTC"].iloc[0]).total_seconds()
-            if dur_mid < (RUN_MIN_SECONDS * 1.5) and prev_lvl == next_lvl:
-                i += 1
-                continue
-        merged.append((block, lvl))
-        i += 1
-    return merged
-
  # =============================
  # LOAD & FILTER
  # =============================
@@ -1088,8 +977,6 @@ df_plot = df_plot[df_plot["trip_npts"] >= MIN_TRIP_POINTS].copy()
 # =============================
 summary_rows = []
 df_plot["Level"] = "Outside"
-df_plot["Is_Crossing"] = False
-df_plot["in_NA"] = within_box(df_plot, LAT_MIN, LAT_MAX, LON_MIN, LON_MAX)
 
 # --- [TOOLTIP FIELD] format time for map tooltip ---
 df_plot["Time_UTC_str"] = [d.strftime("%Y-%m-%d %H:%M:%S") if pd.notna(d) else "" for d in df_plot["DateTime_UTC"]]
@@ -1153,7 +1040,6 @@ for vid in sel_ids:
         
         if we_frac >= MIN_WE_FRACTION:
             # It's a crossing!
-            df_plot.loc[df_in_box.index, "Is_Crossing"] = True
             df_plot.loc[df_in_box.index, "Level"] = "Bridge"
 
             summary_rows.append({
